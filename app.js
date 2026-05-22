@@ -59,23 +59,29 @@ let editingMealId = null;
 // ============================================================
 
 async function init() {
+  console.log('[init] start, IS_CONFIGURED=', IS_CONFIGURED);
   if (!IS_CONFIGURED) {
     showScreen('config');
     return;
   }
 
   // Initialise Supabase client
+  console.log('[init] creating Supabase client…');
   const { createClient } = supabase;
   db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log('[init] client created, calling getSession…');
 
   // Supabase automatically handles the OAuth redirect tokens in the URL hash.
-  const { data: { session } } = await db.auth.getSession();
+  const { data: { session }, error: sessionError } = await db.auth.getSession();
+  console.log('[init] getSession returned, session=', session, 'error=', sessionError);
 
   if (session) {
     currentUser = session.user;
     await checkFamily();
   } else {
+    console.log('[init] no session – calling showScreen(login)');
     showScreen('login');
+    console.log('[init] showScreen(login) done');
   }
 
   // Keep UI in sync when auth changes (e.g. after OAuth redirect)
@@ -96,8 +102,10 @@ async function init() {
 // ============================================================
 
 function showScreen(name) {
+  console.log('[showScreen]', name);
   ['loading', 'config', 'login', 'family', 'app'].forEach(s => {
     const el = document.getElementById(`${s}-screen`);
+    console.log(`  #${s}-screen found=`, !!el, 'hidden=', s !== name);
     if (el) el.hidden = (s !== name);
   });
 }
@@ -652,5 +660,9 @@ function populateStyleFilter() {
 document.addEventListener('DOMContentLoaded', () => {
   populateStyleDropdown();
   populateStyleFilter();
-  init();
+  init().catch(err => {
+    console.error('Dinner Decider failed to initialise:', err);
+    const p = document.querySelector('#loading-screen p');
+    if (p) p.textContent = 'Failed to load: ' + (err.message || err);
+  });
 });
