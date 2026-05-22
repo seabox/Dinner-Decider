@@ -6,8 +6,8 @@
    See README.md for full setup instructions.
    ============================================================ */
 
-const SUPABASE_URL      = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL      = 'https://krxepzgollfzdqqdkgtu.supabase.co/';
+const SUPABASE_ANON_KEY = 'sb_publishable_uuavBMqeKxt9xf-WZPcRoQ_l71gyD4x';
 
 // ============================================================
 // Constants
