@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dinner Decider</title>
+  <meta name="description" content="Plan your family's dinners for the week" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ================================================================
+     LOADING SCREEN
+     ================================================================ -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <p>Loading…</p>
+</div>
+
+<!-- ================================================================
+     CONFIG SCREEN  (shown when SUPABASE_URL / KEY are not set)
+     ================================================================ -->
+<div id="config-screen" hidden>
+  <div class="screen-wrap">
+    <div class="screen-card">
+      <div class="app-icon">🍽️</div>
+      <h1>Dinner Decider</h1>
+      <p class="subtitle">Setup required</p>
+
+      <p style="text-align:left;font-size:.9rem;margin-bottom:.75rem;">
+        The app isn't configured yet. Open <code>app.js</code> and set
+        <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code>
+        to your Supabase project values. Then follow these steps:
+      </p>
+      <ol class="config-steps">
+        <li>Create a free project at <strong>supabase.com</strong>.</li>
+        <li>Run the SQL in <code>supabase-schema.sql</code> in the Supabase SQL Editor.</li>
+        <li>Enable the <strong>Azure</strong> OAuth provider in
+            <em>Authentication → Providers</em> and add your Azure App Registration
+            client ID &amp; secret (see README for full Azure setup).</li>
+        <li>Add your GitHub Pages URL (e.g.
+            <code>https://&lt;user&gt;.github.io/Dinner-Decider/</code>)
+            to <em>Authentication → URL Configuration → Redirect URLs</em>.</li>
+        <li>Copy <strong>Project URL</strong> and <strong>anon public key</strong>
+            from <em>Project Settings → API</em> into <code>app.js</code>.</li>
+        <li>Commit and push — GitHub Pages will serve the updated site.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     LOGIN SCREEN
+     ================================================================ -->
+<div id="login-screen" hidden>
+  <div class="screen-wrap">
+    <div class="screen-card">
+      <div class="app-icon">🍽️</div>
+      <h1>Dinner Decider</h1>
+      <p class="subtitle">Plan your family's meals for the week</p>
+
+      <button id="microsoft-signin-btn" class="btn btn-microsoft" onclick="signInWithMicrosoft()">
+        <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true" style="flex-shrink:0">
+          <rect x="1"  y="1"  width="9" height="9" fill="#f25022"/>
+          <rect x="11" y="1"  width="9" height="9" fill="#7fba00"/>
+          <rect x="1"  y="11" width="9" height="9" fill="#00a4ef"/>
+          <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+        </svg>
+        Sign in with Microsoft
+      </button>
+
+      <div id="login-msg" class="alert alert-error hidden" hidden></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     FAMILY SETUP SCREEN
+     ================================================================ -->
+<div id="family-screen" hidden>
+  <div class="screen-wrap">
+    <div class="screen-card" style="max-width:520px">
+      <div class="app-icon">👨‍👩‍👧‍👦</div>
+      <h1 style="font-size:1.5rem">Choose your family</h1>
+      <p class="subtitle">Join an existing family group or create a new one</p>
+
+      <div id="family-msg" class="alert alert-error hidden" hidden></div>
+
+      <div class="family-panels">
+        <!-- Join panel -->
+        <div class="family-panel">
+          <h3>Join a family</h3>
+          <p>Enter the code shared by another family member</p>
+          <div class="form-group">
+            <label for="join-code">Family code</label>
+            <input id="join-code" type="text" placeholder="e.g. SMITH2024"
+                   maxlength="12" autocomplete="off"
+                   oninput="this.value = this.value.toUpperCase()" />
+          </div>
+          <button id="join-btn" class="btn btn-primary" onclick="joinFamily()" style="width:100%">
+            Join Family
+          </button>
+        </div>
+
+        <!-- Create panel -->
+        <div class="family-panel">
+          <h3>Create a family</h3>
+          <p>Start a new group and share the code with family members</p>
+          <div class="form-group">
+            <label for="create-name">Family name</label>
+            <input id="create-name" type="text" placeholder="e.g. The Smiths"
+                   maxlength="60" />
+          </div>
+          <div class="form-group">
+            <label for="create-code">Choose a code</label>
+            <input id="create-code" type="text" placeholder="e.g. SMITH2024"
+                   maxlength="12" autocomplete="off"
+                   oninput="this.value = this.value.toUpperCase()" />
+          </div>
+          <button id="create-btn" class="btn btn-secondary" onclick="createFamily()" style="width:100%">
+            Create Family
+          </button>
+        </div>
+      </div>
+
+      <p style="margin-top:1.5rem;font-size:.82rem;color:var(--text-muted)">
+        <button class="btn-signout" onclick="signOut()">Sign out</button>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MAIN APP
+     ================================================================ -->
+<div id="app-screen" hidden>
+
+  <!-- Header -->
+  <header id="app-header">
+    <div class="header-left">
+      <span class="header-logo">🍽️</span>
+      <span class="header-title">Dinner Decider</span>
+      <span class="header-family" id="family-name"></span>
+    </div>
+    <div class="header-right">
+      <span class="header-user" id="user-name"></span>
+      <button class="btn btn-switch-family btn-small" onclick="switchFamily()">Switch family</button>
+      <button class="btn-signout" onclick="signOut()">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <nav id="app-tabs" aria-label="Main navigation">
+    <button id="meals-tab-btn"   class="tab-btn active" onclick="showTab('meals')"  >🍲 Meals</button>
+    <button id="planner-tab-btn" class="tab-btn"        onclick="showTab('planner')">📅 This Week</button>
+  </nav>
+
+  <!-- Content -->
+  <main id="app-content">
+
+    <!-- ---- MEALS TAB ---- -->
+    <section id="meals-tab">
+
+      <!-- Add / edit form -->
+      <div id="meal-form-card">
+        <p id="form-title" class="section-title">Add a Meal</p>
+
+        <div class="meal-form-grid">
+          <div class="form-group">
+            <label for="meal-name">Meal name *</label>
+            <input id="meal-name" type="text" placeholder="e.g. Chicken Tikka Masala"
+                   maxlength="120" />
+          </div>
+          <div class="form-group">
+            <label for="meal-reference">Reference (book / site)</label>
+            <input id="meal-reference" type="text" placeholder="e.g. Jamie Oliver p.42"
+                   maxlength="200" />
+          </div>
+          <div class="form-group">
+            <label for="meal-style">Style / cuisine</label>
+            <select id="meal-style"></select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button id="save-meal-btn" class="btn btn-primary" onclick="saveMeal()">Add Meal</button>
+          <button id="cancel-edit-btn" class="btn btn-ghost" onclick="cancelEdit()" hidden>Cancel</button>
+        </div>
+
+        <div id="meal-msg" class="alert hidden" hidden></div>
+      </div>
+
+      <!-- Filter + count bar -->
+      <div class="meals-toolbar">
+        <div class="form-group" style="margin-bottom:0">
+          <label for="style-filter" class="hidden">Filter by style</label>
+          <select id="style-filter" onchange="renderMeals()" aria-label="Filter by cuisine style"></select>
+        </div>
+        <span id="meals-count" class="meals-count"></span>
+      </div>
+
+      <!-- Meals list -->
+      <div id="meals-list" role="list" aria-label="Meal list"></div>
+
+    </section><!-- /meals-tab -->
+
+    <!-- ---- PLANNER TAB ---- -->
+    <section id="planner-tab" hidden>
+
+      <div class="planner-header">
+        <p class="section-title">This Week's Plan</p>
+        <p>Select a meal for each day, add any notes, then hit Save.</p>
+      </div>
+
+      <div id="planner-msg" class="alert hidden" hidden></div>
+
+      <div id="planner-days" role="list" aria-label="Weekly meal plan"></div>
+
+    </section><!-- /planner-tab -->
+
+  </main><!-- /app-content -->
+
+</div><!-- /app-screen -->
+
+<!-- Supabase JS client loaded from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
